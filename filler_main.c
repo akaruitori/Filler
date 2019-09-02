@@ -6,11 +6,15 @@
 /*   By: dtimeon <dtimeon@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2019/08/29 16:47:33 by dtimeon           #+#    #+#             */
-/*   Updated: 2019/09/01 20:44:13 by dtimeon          ###   ########.fr       */
+/*   Updated: 2019/09/02 20:57:15 by dtimeon          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "filler.h"
+
+/*
+** player.write_to_player("$$$ exec p#{i} : [#{player.file_name}]\n")
+*/
 
 char		*find_player_line()
 {
@@ -19,47 +23,46 @@ char		*find_player_line()
 	line = NULL;
 	while(get_next_line(STDIN_FILENO, &line))
 	{
-		if (strnequ(line, "$$$", 3))
+		if (ft_strnequ(line, PLAYER_EXEC_START, PLAYER_EXEC_START_LEN))
 			return (line);
 		ft_strdel(&line);
 	}
 	return (NULL);
 }
 
-int			save_player(t_game *game, char *line, char *self_name)
+int				read_player_no(char *line)
 {
-	char	*name_start;
-	char	*name_end;
-	int		player_no;
-
-	player_no = read_player_no(line);
-	if (!(name_start = ft_strchr(line, '[') ||
-		!(name_end = ft_strchr(name_start, ']'))))
-		return (0);
-	if (ft_strstr(name_start, self_name) && !(game->self))
-	{
-		game->self = init_self(name_start, name_end - name_start, player_no);
-	}
-	else
-	{
-		game->enemy = init_enemy(name_start, name_end - name_start, player_no);
-	}
-
+	return (ft_atoi(line + PLAYER_NO_POS));
 }
 
-int			read_players(t_game *game, char *self_name)
+t_player		*init_self(int player_no)
+{
+	t_player	*new;
+
+	new = (t_player *)malloc(sizeof(t_player));
+	new->sym = (player_no == 1 ? 'O' : 'X');
+	new->latest_sym = (player_no == 1 ? 'o' : 'x');
+}
+
+int			save_players(t_game *game, char *line)
+{
+	int		self_no;
+
+	self_no = read_player_no(line);
+	game->self = init_player(self_no);
+	game->enemy = init_player(self_no == 1 ? 2 : 1);
+	if (!game->self || !game->enemy)
+		return (0);
+	return (1);
+}
+
+int			read_players(t_game *game)
 {
 	char	*line;
-	int		players_read;
 
-	players_read = 0;
-	while (players_read < 2)
-	{
-		if (!(line = find_player_line()) ||
-			!(save_player(game, line, self_name)))
-			return (0);
-		players_read++;
-	}
+	if (!(line = find_player_line()) ||
+		!(save_players(game, line)))
+		return (0);
 	return (1);
 }
 
@@ -80,7 +83,7 @@ int			filler(char	*self_name)
 	t_game	*game;
 
 	game = init_game();
-	if (!game || !read_players(game, self_name))
+	if (!game || !read_players(game))
 		return (0);
 
 	return (1);

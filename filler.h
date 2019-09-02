@@ -6,7 +6,7 @@
 /*   By: dtimeon <dtimeon@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2019/08/29 16:47:54 by dtimeon           #+#    #+#             */
-/*   Updated: 2019/09/01 20:05:31 by dtimeon          ###   ########.fr       */
+/*   Updated: 2019/09/02 20:51:02 by dtimeon          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -19,9 +19,18 @@
 # include <unistd.h>
 # include <stdio.h>
 
+# define SELF_FLAG 1
+# define PLAYER_EXEC_START "$$$"
+# define PLAYER_EXEC_START_LEN 3
+# define PLAYER_NO_POS 11
+# define PLAYER1_SYM 'O'
+# define PLAYER1_LATEST_SYM 'o'
+# define PLAYER1_SYM 'X'
+# define PLAYER1_LATEST_SYM 'x'
+
 typedef struct		s_player
 {
-	char			*name;
+	// char			*name;
 	char			sym;
 	char			latest_sym;
 }					t_player;
