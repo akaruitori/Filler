@@ -6,7 +6,7 @@
 /*   By: dtimeon <dtimeon@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2019/08/29 16:47:54 by dtimeon           #+#    #+#             */
-/*   Updated: 2019/09/03 14:49:58 by dtimeon          ###   ########.fr       */
+/*   Updated: 2019/09/03 18:21:16 by dtimeon          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -26,13 +26,11 @@
 # define PLAYER1_LATEST_SYM 'o'
 # define PLAYER2_SYM 'X'
 # define PLAYER2_LATEST_SYM 'x'
-
-typedef struct		s_player
-{
-	// char			*name;
-	char			sym;
-	char			latest_sym;
-}					t_player;
+# define MAP_COORD_PREFIX "Plateau "
+# define MAP_COORD_PREFIX_LEN 8
+# define PIECE_COORD_PREFIX "Piece "
+# define PIECE_COORD_PREFIX_LEN 6
+# define X_MAP_OFFSET 4
 
 typedef struct		s_pos
 {
@@ -40,11 +38,18 @@ typedef struct		s_pos
 	int				y;
 }					t_pos;
 
+typedef struct		s_player
+{
+	// char			*name;
+	char			sym;
+	char			latest_sym;
+	t_pos			*start_pos;
+}					t_player;
+
 typedef struct		s_map
 {
 	int				**heat_map;
-	int				width;
-	int				height;
+	t_pos			*sizes;
 }					t_map;
 
 typedef struct		s_piece
