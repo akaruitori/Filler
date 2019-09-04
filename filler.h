@@ -6,7 +6,7 @@
 /*   By: dtimeon <dtimeon@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2019/08/29 16:47:54 by dtimeon           #+#    #+#             */
-/*   Updated: 2019/09/03 18:21:16 by dtimeon          ###   ########.fr       */
+/*   Updated: 2019/09/04 16:39:40 by dtimeon          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -18,6 +18,7 @@
 # include <sys/uio.h>
 # include <unistd.h>
 # include <stdio.h>
+# include <limits.h>
 
 # define PLAYER_EXEC_START "$$$"
 # define PLAYER_EXEC_START_LEN 3
