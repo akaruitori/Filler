@@ -6,7 +6,7 @@
 /*   By: dtimeon <dtimeon@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2019/08/29 16:47:33 by dtimeon           #+#    #+#             */
-/*   Updated: 2019/09/05 14:40:15 by dtimeon          ###   ########.fr       */
+/*   Updated: 2019/09/05 18:17:33 by dtimeon          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -117,36 +117,53 @@ t_pos			*read_map_sizes(void)
 
 void		save_start_pos(t_pos **player_pos, int x, int y)
 {
-	*player_pos = (t_pos *)malloc(sizeof(t_pos));
-	if (!player_pos)
+	t_pos	*new;
+	t_pos	*temp;
+
+	new = (t_pos *)malloc(sizeof(t_pos));
+	if (!new)
 		return ;
-	(*player_pos)->x = x;
-	(*player_pos)->y = y;
+	new->x = x;
+	new->y = y;
+	new->next = NULL;
+	if (*player_pos)
+	{
+		temp = *player_pos;
+		while (temp->next)
+			temp = temp->next;
+		temp->next = new;
+	}
+	else
+		*player_pos = new;
 }
 
 int			read_start_pos(t_game *game, t_pos *map_sizes,
-							t_pos **self_start_pos, t_pos **enemy_start_pos)
+							t_pos **self_pos, t_pos **enemy_pos)
 {
 	char	*line;
 	int		lines_to_read;
-	char	*game_piece;
+	int		i;
 
 	lines_to_read = map_sizes->y + 1;
 	while (lines_to_read > 0)
 	{
 		if (get_next_line(STDIN_FILENO, &line) < 1)
 			return (0);
-		if ((game_piece = ft_strchr(line, game->self->sym)))
-			save_start_pos(self_start_pos, game_piece - line - X_MAP_OFFSET,
-							map_sizes->y - lines_to_read);
-		else if ((game_piece = ft_strchr(line, game->enemy->sym)))
-			save_start_pos(enemy_start_pos, game_piece - line - X_MAP_OFFSET,
-							map_sizes->y - lines_to_read);
+		i = X_MAP_OFFSET;
+		while (line[i])
+		{
+			if (line[i] == game->self->sym)
+				save_start_pos(self_pos, i - X_MAP_OFFSET, 
+								map_sizes->y - lines_to_read);
+			else if (line[i] == game->enemy->sym ||
+					line[i] == game->enemy->latest_sym)
+				save_start_pos(enemy_pos, i - X_MAP_OFFSET, 
+								map_sizes->y - lines_to_read);
+			i++;
+		}
 		lines_to_read--;
 	}
-	if (!*self_start_pos || !*enemy_start_pos)
-		return (0);
-	return (1);
+	return ((!*self_pos || !*enemy_pos) ? 0 : 1);
 }
 
 int			ft_max(int a, int b)
@@ -162,6 +179,24 @@ int			ft_min(int a, int b)
 /*
 ** https://learnc.info/c/fast_array_allocation.html
 */
+
+int			fill_heat_map_cell(int x, int y, t_pos **self_pos,
+								t_pos **enemy_pos)
+{
+	if ((*self_pos) && ((*self_pos)->x == x && (*self_pos)->y == y))
+	{
+		*self_pos = (*self_pos)->next;
+		return (-1);
+	}
+	else if ((*enemy_pos) && ((*enemy_pos)->x == x && (*enemy_pos)->y == y))
+	{
+		*enemy_pos = (*enemy_pos)->next;
+		return (0);
+	}
+	else
+		return (INT_MAX);
+
+}
 
 int			**create_heat_map(t_pos *map_sizes, t_pos *self_pos,
 								t_pos *enemy_pos)
@@ -180,12 +215,7 @@ int			**create_heat_map(t_pos *map_sizes, t_pos *self_pos,
 		x = 0;
 		while (x < map_sizes->x)
 		{
-			if (self_pos->x == x && self_pos->y == y)
-				heat_map[y][x] = -1;
-			else if (enemy_pos->x == x && enemy_pos->y == y)
-				heat_map[y][x] = 0;
-			else
-				heat_map[y][x] = INT_MAX;
+			heat_map[y][x] = fill_heat_map_cell(x, y, &self_pos, &enemy_pos);
 			x++;
 		}
 		y++;
@@ -252,6 +282,7 @@ void		update_heat_map(t_game *game)
 	}
 }
 
+//
 void		print_heat_map(t_map *map)
 {
 	int		x;
@@ -262,13 +293,14 @@ void		print_heat_map(t_map *map)
 		x = 0;
 		while (x < map->sizes->x)
 		{
-			printf("%d ", map->heat_map[y][x]);
+			printf("%3d", map->heat_map[y][x]);
 			x++;
 		}
 		printf("\n");
 		y++;
 	}
 }
+//
 
 int			create_map(t_game *game)
 {
@@ -297,7 +329,10 @@ int			filler()
 	game = init_game();
 	if (!game || !read_players(game) || !create_map(game))
 		return (0);
+	// while (game)
+	// {
 
+	// }
 	return (1);
 }
 

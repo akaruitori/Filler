@@ -6,7 +6,7 @@
 /*   By: dtimeon <dtimeon@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2019/08/29 16:47:54 by dtimeon           #+#    #+#             */
-/*   Updated: 2019/09/05 12:42:40 by dtimeon          ###   ########.fr       */
+/*   Updated: 2019/09/05 17:43:44 by dtimeon          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -37,6 +37,7 @@ typedef struct		s_pos
 {
 	int				x;
 	int				y;
+	struct s_pos	*next;
 }					t_pos;
 
 typedef struct		s_player
