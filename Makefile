@@ -21,10 +21,10 @@ all: $(NAME)
 
 $(NAME): $(OBJECTS_DIR) $(OBJECTS)
 	@make -C $(LIBF) re
-	$(CC) -L $(LIBF) -lft $(OBJECTS) -I $(INCL) -I $(LIBF) -o $(NAME)
+	$(CC) -L $(LIBF) -lft -g $(OBJECTS) -I $(INCL) -I $(LIBF) -o $(NAME)
 
 $(OBJECTS_DIR)%.o: %.c
-	$(CC) $(CFLAGS) -I $(LIBF) -c $< -o $@
+	$(CC) $(CFLAGS) -I $(LIBF) -g -c $< -o $@
 
 $(OBJECTS_DIR):
 	@mkdir $(OBJECTS_DIR)
