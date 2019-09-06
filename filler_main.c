@@ -6,7 +6,7 @@
 /*   By: dtimeon <dtimeon@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2019/08/29 16:47:33 by dtimeon           #+#    #+#             */
-/*   Updated: 2019/09/05 18:17:33 by dtimeon          ###   ########.fr       */
+/*   Updated: 2019/09/06 18:36:53 by dtimeon          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -153,11 +153,11 @@ int			read_start_pos(t_game *game, t_pos *map_sizes,
 		while (line[i])
 		{
 			if (line[i] == game->self->sym)
-				save_start_pos(self_pos, i - X_MAP_OFFSET, 
+				save_start_pos(self_pos, i - X_MAP_OFFSET,
 								map_sizes->y - lines_to_read);
 			else if (line[i] == game->enemy->sym ||
 					line[i] == game->enemy->latest_sym)
-				save_start_pos(enemy_pos, i - X_MAP_OFFSET, 
+				save_start_pos(enemy_pos, i - X_MAP_OFFSET,
 								map_sizes->y - lines_to_read);
 			i++;
 		}
@@ -176,9 +176,6 @@ int			ft_min(int a, int b)
 	return ((a >= b) ? b : a);
 }
 
-/*
-** https://learnc.info/c/fast_array_allocation.html
-*/
 
 int			fill_heat_map_cell(int x, int y, t_pos **self_pos,
 								t_pos **enemy_pos)
@@ -195,8 +192,11 @@ int			fill_heat_map_cell(int x, int y, t_pos **self_pos,
 	}
 	else
 		return (INT_MAX);
-
 }
+
+/*
+** https://learnc.info/c/fast_array_allocation.html
+*/
 
 int			**create_heat_map(t_pos *map_sizes, t_pos *self_pos,
 								t_pos *enemy_pos)
@@ -322,6 +322,110 @@ int			create_map(t_game *game)
 	return (1);
 }
 
+t_piece		*init_peace(t_pos *sizes)
+{
+	int		**token;
+	int		token_size;
+	t_piece	*piece;
+
+	token_size = sizeof(int *) * sizes->y + sizeof(int) * sizes->y * sizes->x;
+	token = (int **)malloc(token_size);
+	if (!token || !(piece = (t_piece *)malloc(sizeof(t_piece))))
+		return (NULL);
+	ft_memset(token, 0, token_size);
+	piece->sizes = sizes;
+	piece->token = token;
+	return(piece);
+}
+
+int			is_valid_piece_line(char *line, len)
+{
+	if (ft_strlen(line) != len)
+		return (0);
+	while (*line)
+	{
+		if ((*line != PIECE_SYM) && (*line != EMPTY_SYM))
+			return (0);
+		line++;
+	}
+	return (1);
+}
+
+t_piece		*read_piece(void)
+{
+	t_pos	*sizes;
+	char	*line;
+	t_piece	*piece;
+	int		lines_to_read;
+
+	if ((get_next_line(STDIN_FILENO, &line) < 1) ||
+		(!ft_strnequ(line, PIECE_COORD_PREFIX, PIECE_COORD_PREFIX_LEN) ||
+		!(sizes = read_coords(line + PIECE_COORD_PREFIX_LEN))) ||
+		!(piece = init_peace(sizes)))
+		return (NULL);
+	lines_to_read = sizes->y;
+	while (lines_to_read)
+	{
+		if ((get_next_line(STDIN_FILENO, &line) < 1) ||
+			!is_valid_piece_line(line, sizes->x))
+			return (NULL);
+		copy_line_to_token(line, piece->token, sizes->y - lines_to_read);
+		lines_to_read--;
+	}
+	return (piece);
+}
+
+void		print_pos(t_pos *pos)
+{
+	write(STDIN_FILENO, ft_llint_to_str_base(pos->y, 10), 1);
+	write(STDIN_FILENO, " ", 1);
+	write(STDIN_FILENO, ft_llint_to_str_base(pos->x, 10), 0);
+}
+
+t_pos		*find_best_positions(t_game *game)
+{
+	t_pos	*current_best;
+	int		min_sum;
+	int		sum;
+	int		y;
+	int		x;
+
+	y = 0;
+	current_best = NULL;
+	while (y < game->map->sizes->y)
+	{
+		x = 0;
+		while (x < game->map->sizes->x)
+		{
+			if (is_valid_piece_pos(game, x, y))
+			{
+				if ((sum = calculate_sum(game, x, y) < min_sum))
+				{
+					min_sum = sum;
+					add_current_best_pos(&current_best, x, y);
+				}
+			}
+			x++;
+		}
+		y++;
+	}
+}
+
+t_pos			*choose_pos(t_game *game)
+{
+	static int	flag = 1;
+	t_pos		*best_pos;
+
+	if (!(best_pos = find_best_positions(game)))
+		return (NULL);
+	else if (flag == 1)
+		flag = -1;
+	else
+		while (best_pos->next)
+			best_pos = best_pos->next;
+	return (best_pos);
+}
+
 int			filler()
 {
 	t_game	*game;
@@ -329,10 +433,18 @@ int			filler()
 	game = init_game();
 	if (!game || !read_players(game) || !create_map(game))
 		return (0);
-	// while (game)
-	// {
-
-	// }
+	while (game)
+	{
+		if (!(game->self_piece = read_piece()))
+			return (0);
+		if (!(game->choosed_pos = choose_pos(game)))
+			return (finish_game(&game));
+		print_pos(game->choosed_pos);
+		add_self_pos_to_heatmap(game);
+		if (!(upadate_enemy_pos(game)))
+			return (finish_game(&game));
+		update_heat_map(game);
+	}
 	return (1);
 }
 
@@ -342,8 +454,8 @@ int			main(int ac, char **av)
 	(void)av;
 	if (!filler())
 	{
-		perror("An error occured in filler function");
-		return (1);
+		perror("An error occured in filler program");
+		return (0);
 	}
 	return (0);
 }

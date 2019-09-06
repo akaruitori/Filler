@@ -6,7 +6,7 @@
 /*   By: dtimeon <dtimeon@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2019/08/29 16:47:54 by dtimeon           #+#    #+#             */
-/*   Updated: 2019/09/05 17:43:44 by dtimeon          ###   ########.fr       */
+/*   Updated: 2019/09/06 16:50:51 by dtimeon          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -32,6 +32,8 @@
 # define PIECE_COORD_PREFIX "Piece "
 # define PIECE_COORD_PREFIX_LEN 6
 # define X_MAP_OFFSET 4
+# define EMPTY_SYM '.'
+# define PIECE_SYM '*'
 
 typedef struct		s_pos
 {
@@ -56,9 +58,8 @@ typedef struct		s_map
 
 typedef struct		s_piece
 {
-	int				width;
-	int				height;
-	char			**token;
+	t_pos			*sizes;
+	int				**token;
 }					t_piece;
 
 typedef struct		s_game
@@ -66,6 +67,8 @@ typedef struct		s_game
 	t_player		*self;
 	t_player		*enemy;
 	t_map			*map;
+	t_piece			*self_piece;
+	t_pos			*choosed_pos;
 }					t_game;
 
 #endif
