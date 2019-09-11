@@ -6,25 +6,45 @@
 /*   By: dtimeon <dtimeon@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2019/08/29 16:47:33 by dtimeon           #+#    #+#             */
-/*   Updated: 2019/09/06 18:36:53 by dtimeon          ###   ########.fr       */
+/*   Updated: 2019/09/11 19:03:33 by dtimeon          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "filler.h"
 
+void		read_till_newline()
+{
+	char	c;
+
+	c = '\0';
+	while (c != '\n')
+		read(STDIN_FILENO, &c, 1);
+}
+
 /*
 ** player.write_to_player("$$$ exec p#{i} : [#{player.file_name}]\n")
 */
 
-char		*find_player_line()
+char		*find_player_line(t_game *game)
 {
 	char	*line;
+	size_t	bytes_read;
 
-	line = NULL;
-	while(get_next_line(STDIN_FILENO, &line))
+	line = ft_strnew(PLAYER_EXEC_LEN + 1);
+	if ((bytes_read = read(STDIN_FILENO, line, PLAYER_EXEC_LEN)) > 0)
 	{
+		if (game->log)
+			fwrite("Attemt to read player line\n", sizeof(char), 27, game->log);
 		if (ft_strnequ(line, PLAYER_EXEC_START, PLAYER_EXEC_START_LEN))
+		{
+			if (game->log)
+			{
+				fwrite(line, sizeof(char), ft_strlen(line), game->log);
+				fwrite(" is read\n", sizeof(char), 9, game->log);
+			}
+			read_till_newline();
 			return (line);
+		}
 		ft_strdel(&line);
 	}
 	return (NULL);
@@ -50,14 +70,23 @@ t_player		*init_player(int player_no)
 int			save_players(t_game *game, char *line)
 {
 	int		self_no;
+	char	*self_no_str;
 
 	self_no = read_player_no(line);
+	if (game->log)
+	{
+		self_no_str = ft_llint_to_str_base(self_no, 10);
+		fwrite("Player no is ", sizeof(char), 13, game->log);
+		fwrite(self_no_str, sizeof(char), ft_strlen(self_no_str), game->log);
+	}
 	if (self_no != 1 && self_no != 2)
 		return (0);
 	game->self = init_player(self_no);
 	game->enemy = init_player(self_no == 1 ? 2 : 1);
 	if (!game->self || !game->enemy)
 		return (0);
+	if (game->log)
+		fwrite("\nPlayers are created\n", sizeof(char), 21, game->log);
 	return (1);
 }
 
@@ -65,31 +94,73 @@ int			read_players(t_game *game)
 {
 	char	*line;
 
-	if (!(line = find_player_line()) ||
+	if (!(line = find_player_line(game)) ||
 		!(save_players(game, line)))
 		return (0);
 	return (1);
 }
 
-t_game		*init_game()
+t_game		*init_game(int log_flag)
 {
 	t_game	*new;
+	FILE	*log;
 
 	if (!(new = (t_game *)malloc(sizeof(t_game))))
 		return (NULL);
 	new->map = NULL;
 	new->self = NULL;
 	new->enemy = NULL;
+	new->self_piece = NULL;
+	new->choosed_pos = NULL;
+	if (log_flag)
+	{
+		log = fopen(LOG_FILENAME, "w");
+		new->log = log;
+	}
+	else
+		new->log = NULL;	
+	fwrite("Game struct initialized\n", sizeof(char), 24, new->log);
 	return (new);
 }
 
-t_pos			*read_coords(char *line)
+char			*read_two_ints()
+{
+	char		*line;
+	int			i;
+
+	i = 0;
+	line = ft_strnew(24);
+	while (i < 11)
+	{
+		if (read(STDIN_FILENO, &line[i], 1) < 1)
+			return (NULL);
+		if (i > 0 && line[i] == ' ')
+			break ;
+		if (!ft_isdigit(line[i]))
+			return (NULL);
+		i++;
+	}
+	while (i++ < 24)
+	{
+		if (read(STDIN_FILENO, &line[i], 1) < 1 ||
+			!(ft_isdigit(line[i]) || (line[i] == ':')) ||
+			((line[i - 1] == ' ') && (line[i] == ':')))
+			return (NULL);
+		if (line[i] == ':')
+			break;
+	}
+	return (line);
+}
+
+t_pos			*read_coords()
 {
 	int			x;
 	int			y;
+	char		*line;
 	t_pos		*coords;
 
-	if (!(y = (int)ft_strtol(line, &line, 10))
+	if (!(line = read_two_ints()) ||
+		!(y = (int)ft_strtol(line, &line, 10))
 		|| !(x = (int)ft_strtol(line, NULL, 10)))
 		return (NULL);
 	coords = (t_pos *)malloc(sizeof(t_pos));
@@ -97,21 +168,41 @@ t_pos			*read_coords(char *line)
 		return (NULL);
 	coords->x = x;
 	coords->y = y;
+	read_till_newline();
 	return (coords);
 }
 
-t_pos			*read_map_sizes(void)
+void		log_map_sizes(t_game *game, t_pos *map_sizes)
+{
+	char	*x;
+	char	*y;
+
+	if (game->log)
+	{
+		x = ft_llint_to_str_base(map_sizes->x, 10);
+		y = ft_llint_to_str_base(map_sizes->y, 10);
+		fwrite("Map sizes: ", sizeof(char), 11, game->log);
+		fwrite(y, sizeof(char), ft_strlen(y), game->log);
+		fwrite(" ", sizeof(char), 1, game->log);
+		fwrite(x, sizeof(char), ft_strlen(x), game->log);
+		fwrite("\n", sizeof(char), 1, game->log);
+	}
+}
+
+t_pos			*read_map_sizes(t_game *game)
 {
 	char	*line;
 	t_pos	*map_sizes;
 
-	if (get_next_line(STDIN_FILENO, &line) < 1)
+	line = ft_strnew(0);
+	if (read(STDIN_FILENO, line, MAP_COORD_PREFIX_LEN) < 1 ||
+		!ft_strnequ(line, MAP_COORD_PREFIX, MAP_COORD_PREFIX_LEN))
 		return (NULL);
-	if (!ft_strnequ(line, MAP_COORD_PREFIX, MAP_COORD_PREFIX_LEN))
-		return (NULL);
+	ft_strdel(&line);
 	map_sizes = (t_pos *)malloc(sizeof(t_pos));
-	if (!map_sizes || !(map_sizes = read_coords(line + MAP_COORD_PREFIX_LEN)))
+	if (!map_sizes || !(map_sizes = read_coords()))
 		return (NULL);
+	log_map_sizes(game, map_sizes);
 	return (map_sizes);
 }
 
@@ -137,6 +228,20 @@ void		save_start_pos(t_pos **player_pos, int x, int y)
 		*player_pos = new;
 }
 
+void		log_map_line(t_game *game, char *line, int lines_to_read)
+{
+	char	*lines_str;
+
+	if (game->log)
+	{
+		lines_str = ft_llint_to_str_base(lines_to_read, 10);
+		fwrite("\n", sizeof(char), 1, game->log);
+		fwrite(lines_str, sizeof(char), ft_strlen(lines_str), game->log);
+		fwrite(" lines left, line read: ", sizeof(char), 24, game->log);
+		fwrite(line, sizeof(char), ft_strlen(line), game->log);
+	}
+}
+
 int			read_start_pos(t_game *game, t_pos *map_sizes,
 							t_pos **self_pos, t_pos **enemy_pos)
 {
@@ -145,9 +250,10 @@ int			read_start_pos(t_game *game, t_pos *map_sizes,
 	int		i;
 
 	lines_to_read = map_sizes->y + 1;
+	line = ft_strnew(map_sizes->x + 5);
 	while (lines_to_read > 0)
 	{
-		if (get_next_line(STDIN_FILENO, &line) < 1)
+		if (read(STDIN_FILENO, line, map_sizes->x + 4) < 1)
 			return (0);
 		i = X_MAP_OFFSET;
 		while (line[i])
@@ -162,6 +268,8 @@ int			read_start_pos(t_game *game, t_pos *map_sizes,
 			i++;
 		}
 		lines_to_read--;
+		read_till_newline();
+		log_map_line(game, line, lines_to_read);
 	}
 	return ((!*self_pos || !*enemy_pos) ? 0 : 1);
 }
@@ -183,12 +291,12 @@ int			fill_heat_map_cell(int x, int y, t_pos **self_pos,
 	if ((*self_pos) && ((*self_pos)->x == x && (*self_pos)->y == y))
 	{
 		*self_pos = (*self_pos)->next;
-		return (-1);
+		return (0);
 	}
 	else if ((*enemy_pos) && ((*enemy_pos)->x == x && (*enemy_pos)->y == y))
 	{
 		*enemy_pos = (*enemy_pos)->next;
-		return (0);
+		return (-1);
 	}
 	else
 		return (INT_MAX);
@@ -274,7 +382,7 @@ void		update_heat_map(t_game *game)
 		x = 0;
 		while (x < game->map->sizes->x)
 		{
-			if (game->map->heat_map[y][x] == 0)
+			if (game->map->heat_map[y][x] == -1)
 				calculate_heat_for_pos(x, y, game->map);
 			x++;
 		}
@@ -282,25 +390,34 @@ void		update_heat_map(t_game *game)
 	}
 }
 
-//
-void		print_heat_map(t_map *map)
+void		log_heat_map(t_game *game)
 {
 	int		x;
-	int		y = 0;
+	int		y;
+	char	*value_str;
+	int		value_str_len;
+	int		width;
 
-	while (y < map->sizes->y)
+	if (!game->log)
+		return ;
+	y = 0;
+	fwrite("\nHeat map:\n", sizeof(char), 11, game->log);
+	while (y < game->map->sizes->y)
 	{
 		x = 0;
-		while (x < map->sizes->x)
+		while (x < game->map->sizes->x)
 		{
-			printf("%3d", map->heat_map[y][x]);
+			value_str = ft_itoa(game->map->heat_map[y][x]);
+			value_str_len = ft_strlen(value_str);
+			width = ((5 - value_str_len) >= 0 ? 5 - value_str_len : 1);
+			fwrite("      ", sizeof(char), width, game->log);
+			fwrite(value_str, sizeof(char), value_str_len, game->log);
 			x++;
 		}
-		printf("\n");
+		fwrite("\n", sizeof(char), 1, game->log);
 		y++;
 	}
 }
-//
 
 int			create_map(t_game *game)
 {
@@ -310,15 +427,14 @@ int			create_map(t_game *game)
 
 	self_start_pos = NULL;
 	enemy_start_pos = NULL;
-	if (!(map_sizes = read_map_sizes()) ||
+	if (!(map_sizes = read_map_sizes(game)) ||
 		!(read_start_pos(game, map_sizes, &self_start_pos, &enemy_start_pos)))
 		return (0);
 	game->map = init_map(map_sizes, self_start_pos, enemy_start_pos);
 	if (!game->map)
 		return (0);
-	print_heat_map(game->map); //
 	update_heat_map(game);
-	print_heat_map(game->map); //
+	log_heat_map(game);
 	return (1);
 }
 
@@ -327,20 +443,24 @@ t_piece		*init_peace(t_pos *sizes)
 	int		**token;
 	int		token_size;
 	t_piece	*piece;
+	int		y;
 
 	token_size = sizeof(int *) * sizes->y + sizeof(int) * sizes->y * sizes->x;
 	token = (int **)malloc(token_size);
 	if (!token || !(piece = (t_piece *)malloc(sizeof(t_piece))))
 		return (NULL);
-	ft_memset(token, 0, token_size);
+	y = -1;
+	while (++y < sizes->y)
+		token[y] = (int *)(token + sizes->y) + y * sizes->x;
+	ft_memset(token + sizes->y, 0, token_size);
 	piece->sizes = sizes;
 	piece->token = token;
 	return(piece);
 }
 
-int			is_valid_piece_line(char *line, len)
+int			is_valid_piece_line(char *line, int len)
 {
-	if (ft_strlen(line) != len)
+	if (ft_strlen(line) != (size_t)len)
 		return (0);
 	while (*line)
 	{
@@ -351,108 +471,266 @@ int			is_valid_piece_line(char *line, len)
 	return (1);
 }
 
-t_piece		*read_piece(void)
+void		copy_line_to_token(char *line, int **token, int row)
+{
+	int		i;
+
+	i = 0;
+	while (line[i])
+	{
+		token[row][i] = (line[i] == '*' ? 1 : 0);
+		i++;
+	}
+}
+
+t_piece		*read_piece(t_game *game)
 {
 	t_pos	*sizes;
 	char	*line;
 	t_piece	*piece;
 	int		lines_to_read;
 
-	if ((get_next_line(STDIN_FILENO, &line) < 1) ||
+	line = ft_strnew(0);
+	if ((read(STDIN_FILENO, line, PIECE_COORD_PREFIX_LEN) < 1) ||
 		(!ft_strnequ(line, PIECE_COORD_PREFIX, PIECE_COORD_PREFIX_LEN) ||
-		!(sizes = read_coords(line + PIECE_COORD_PREFIX_LEN))) ||
+		!(sizes = read_coords())) ||
 		!(piece = init_peace(sizes)))
 		return (NULL);
 	lines_to_read = sizes->y;
-	while (lines_to_read)
+	line = ft_strnew(sizes->x + 1);
+	while (lines_to_read > 0)
 	{
-		if ((get_next_line(STDIN_FILENO, &line) < 1) ||
+		if ((read(STDIN_FILENO, line, sizes->x) < 1) ||
 			!is_valid_piece_line(line, sizes->x))
 			return (NULL);
 		copy_line_to_token(line, piece->token, sizes->y - lines_to_read);
 		lines_to_read--;
+		log_map_line(game, line, lines_to_read);
+		read_till_newline();
 	}
+	ft_strdel(&line);
 	return (piece);
 }
 
 void		print_pos(t_pos *pos)
 {
-	write(STDIN_FILENO, ft_llint_to_str_base(pos->y, 10), 1);
-	write(STDIN_FILENO, " ", 1);
-	write(STDIN_FILENO, ft_llint_to_str_base(pos->x, 10), 0);
+	char	*x;
+	char	*y;
+
+	y = ft_itoa(pos->y);
+	x = ft_itoa(pos->x);
+	write(STDOUT_FILENO, y, ft_strlen(y));
+	write(STDOUT_FILENO, " ", 1);
+	write(STDOUT_FILENO, x, ft_strlen(x));
 }
 
-t_pos		*find_best_positions(t_game *game)
+int			is_valid_piece_pos(t_game *game, int x, int y)
 {
-	t_pos	*current_best;
-	int		min_sum;
-	int		sum;
-	int		y;
-	int		x;
+	int		cell_match_flag;
+	int		px;
+	int		py;
 
-	y = 0;
-	current_best = NULL;
-	while (y < game->map->sizes->y)
+	cell_match_flag = 0;
+	py = -1;
+	while (++py < game->self_piece->sizes->y)
 	{
-		x = 0;
-		while (x < game->map->sizes->x)
+		px = -1;
+		while (++px < game->self_piece->sizes->x)
 		{
-			if (is_valid_piece_pos(game, x, y))
+			if ((game->map->heat_map[py + y][px + x] == -1) &&
+				(game->self_piece->token[py][px] == 1))
+				return (0);
+			if (game->self_piece->token[py][px] &&
+				(game->map->heat_map[py + y][px + x] == 0))
 			{
-				if ((sum = calculate_sum(game, x, y) < min_sum))
-				{
-					min_sum = sum;
-					add_current_best_pos(&current_best, x, y);
-				}
+				if (cell_match_flag)
+					return (0);
+				else
+					cell_match_flag = 1;
 			}
-			x++;
 		}
-		y++;
 	}
+	return (cell_match_flag ? 1 : 0);
+}
+
+int				calculate_sum(t_game *game, int x, int y)
+{
+	int			px;
+	int			py;
+	int			sum;
+
+	py = 0;
+	sum = 0;
+	while (py < game->self_piece->sizes->y)
+	{
+		px = 0;
+		while (px < game->self_piece->sizes->x)
+		{
+			sum += (game->self_piece->token[py][px] ? 
+					game->map->heat_map[py + y][px + x] : 0);
+			px++;
+		}
+		py++;
+	}
+	return (sum);
+}
+
+void			add_current_best_pos(t_pos **current_best, int x, int y)
+{
+	if (!*current_best && !(*current_best = (t_pos *)malloc(sizeof(t_pos))))
+		return ;
+	(*current_best)->x = x;
+	(*current_best)->y = y;
+
+}
+
+t_pos			*find_best_positions(t_game *game)
+{
+	t_pos		*current_best;
+	long int	min_sum;
+	long int	sum;
+	int			y;
+	int			x;
+
+	y = -1;
+	current_best = NULL;
+	min_sum = LONG_MAX;
+	while (++y <= game->map->sizes->y - game->self_piece->sizes->y)
+	{
+		x = -1;
+		while (++x <= game->map->sizes->x - game->self_piece->sizes->x)
+		{
+			if (is_valid_piece_pos(game, x, y) &&
+				((sum = calculate_sum(game, x, y)) < min_sum))
+			{
+				min_sum = sum;
+				add_current_best_pos(&current_best, x, y);
+			}
+		}
+	}
+	return (current_best);
 }
 
 t_pos			*choose_pos(t_game *game)
 {
-	static int	flag = 1;
+	// static int	flag = 1;
 	t_pos		*best_pos;
 
 	if (!(best_pos = find_best_positions(game)))
 		return (NULL);
-	else if (flag == 1)
-		flag = -1;
-	else
-		while (best_pos->next)
-			best_pos = best_pos->next;
+	// else if (flag == 1)
+	// 	flag = -1;
+	// else
+	// {
+	// 	flag = 1;
+	// 	while (best_pos->next)
+	// 		best_pos = best_pos->next;
+	// }
+
 	return (best_pos);
 }
 
-int			filler()
+void		free_game(t_game *game)
+{
+	if (game->self)
+		ft_memdel((void **)&game->self);
+	if (game->enemy)
+		ft_memdel((void **)&game->enemy);
+	if (game->map)
+	{
+		if (game->map->heat_map)
+			ft_memdel((void **)&game->map->heat_map);
+		ft_memdel((void **)&game->map);
+	}
+	if (game->self_piece)
+	{
+		if (game->self_piece->token)
+			ft_memdel((void **)&game->self_piece->token);
+		ft_memdel((void **)&game->self_piece);
+	}
+	if (game->choosed_pos)
+		ft_memdel((void **)&game->choosed_pos);
+	if (game->log)
+		fclose(game->log);
+}
+
+int			finish_game(t_game **game)
+{
+	free_game(*game);
+	free(*game);
+	*game = NULL;
+	return (1);
+}
+
+void		log_choosed_pos(t_game *game)
+{
+	char		*x_str;
+	char		*y_str;
+	
+	if (game->log)
+	{
+		x_str = ft_itoa(game->choosed_pos->x);
+		y_str = ft_itoa(game->choosed_pos->y);
+		fwrite("\nChoosed position is: ", sizeof(char), 22, game->log);
+		fwrite(y_str, sizeof(char), ft_strlen(y_str), game->log);
+		fwrite(" ", sizeof(char), 1, game->log);
+		fwrite(x_str, sizeof(char), ft_strlen(x_str), game->log);
+		fwrite("\n", sizeof(char), 1, game->log);
+	}
+}
+
+int			filler(int log_flag)
 {
 	t_game	*game;
 
-	game = init_game();
+	game = init_game(log_flag);
 	if (!game || !read_players(game) || !create_map(game))
 		return (0);
 	while (game)
 	{
-		if (!(game->self_piece = read_piece()))
+		if (!(game->self_piece = read_piece(game)))
 			return (0);
 		if (!(game->choosed_pos = choose_pos(game)))
 			return (finish_game(&game));
+		log_choosed_pos(game);
 		print_pos(game->choosed_pos);
-		add_self_pos_to_heatmap(game);
-		if (!(upadate_enemy_pos(game)))
-			return (finish_game(&game));
-		update_heat_map(game);
+		// add_self_pos_to_heatmap(game);
+		// if (!(upadate_enemy_pos(game)))
+		// 	return (finish_game(&game));
+		// update_heat_map(game);
 	}
 	return (1);
 }
 
 int			main(int ac, char **av)
 {
+	int		i;
+	int		log_flag;
 	(void)ac;
 	(void)av;
-	if (!filler())
+
+	// FILE	*fp;
+	// int		i = 0;
+	// char	*line = ft_strnew(1000);
+	// fp = fopen("vm_input", "w");
+	// while (i < 20)
+	// {
+	// 	get_next_line(STDIN_FILENO, &line);
+	// 	fprintf(fp, "line: %s\n", line);
+	// 	i++;
+	// }
+	// ft_putnbr(8);
+	// ft_putchar(' ');
+	// ft_putnbr(2);
+	// ft_putchar('\n');
+	// fclose(fp);
+	i = 1;
+	log_flag = i + 1;
+	// log_flag = 0;
+	// while (ac > i)
+	// 	if (ft_strequ(av[i++], "-d"))
+	// 		log_flag = 1;
+	if (!filler(log_flag))
 	{
 		perror("An error occured in filler program");
 		return (0);

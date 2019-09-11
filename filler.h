@@ -6,7 +6,7 @@
 /*   By: dtimeon <dtimeon@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2019/08/29 16:47:54 by dtimeon           #+#    #+#             */
-/*   Updated: 2019/09/06 16:50:51 by dtimeon          ###   ########.fr       */
+/*   Updated: 2019/09/11 17:26:17 by dtimeon          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -20,8 +20,9 @@
 # include <stdio.h>
 # include <limits.h>
 
-# define PLAYER_EXEC_START "$$$"
-# define PLAYER_EXEC_START_LEN 3
+# define PLAYER_EXEC_START "$$$ exec p"
+# define PLAYER_EXEC_START_LEN 10
+# define PLAYER_EXEC_LEN 11
 # define PLAYER_NO_POS 10
 # define PLAYER1_SYM 'O'
 # define PLAYER1_LATEST_SYM 'o'
@@ -34,6 +35,7 @@
 # define X_MAP_OFFSET 4
 # define EMPTY_SYM '.'
 # define PIECE_SYM '*'
+# define LOG_FILENAME "log.txt"
 
 typedef struct		s_pos
 {
@@ -69,6 +71,10 @@ typedef struct		s_game
 	t_map			*map;
 	t_piece			*self_piece;
 	t_pos			*choosed_pos;
+	FILE			*log;
 }					t_game;
+
+
+int			finish_game(t_game **game);
 
 #endif
