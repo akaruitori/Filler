@@ -6,7 +6,7 @@
 /*   By: dtimeon <dtimeon@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2019/08/29 16:47:33 by dtimeon           #+#    #+#             */
-/*   Updated: 2019/09/11 19:03:33 by dtimeon          ###   ########.fr       */
+/*   Updated: 2019/09/12 21:15:36 by dtimeon          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -15,10 +15,11 @@
 void		read_till_newline()
 {
 	char	c;
+	int		bytes_read = 1;
 
 	c = '\0';
-	while (c != '\n')
-		read(STDIN_FILENO, &c, 1);
+	while (c != '\n' && bytes_read)
+		bytes_read = read(STDIN_FILENO, &c, 1);
 }
 
 /*
@@ -152,7 +153,7 @@ char			*read_two_ints()
 	return (line);
 }
 
-t_pos			*read_coords()
+t_pos			*read_coords(t_game *game)
 {
 	int			x;
 	int			y;
@@ -163,6 +164,11 @@ t_pos			*read_coords()
 		!(y = (int)ft_strtol(line, &line, 10))
 		|| !(x = (int)ft_strtol(line, NULL, 10)))
 		return (NULL);
+	if (game->log)
+	{
+		fwrite("\nMap sizes line: ", sizeof(char), 17, game->log);
+		fwrite(line, sizeof(char), ft_strlen(line), game->log);
+	}
 	coords = (t_pos *)malloc(sizeof(t_pos));
 	if (!coords)
 		return (NULL);
@@ -198,9 +204,15 @@ t_pos			*read_map_sizes(t_game *game)
 	if (read(STDIN_FILENO, line, MAP_COORD_PREFIX_LEN) < 1 ||
 		!ft_strnequ(line, MAP_COORD_PREFIX, MAP_COORD_PREFIX_LEN))
 		return (NULL);
+	if (game->log)
+	{
+		fwrite("\nMap coord prefix read:", sizeof(char), 23, game->log);
+		fwrite(line, sizeof(char), ft_strlen(line), game->log);
+		fwrite("\n", sizeof(char), 1, game->log);
+	}
 	ft_strdel(&line);
 	map_sizes = (t_pos *)malloc(sizeof(t_pos));
-	if (!map_sizes || !(map_sizes = read_coords()))
+	if (!map_sizes || !(map_sizes = read_coords(game)))
 		return (NULL);
 	log_map_sizes(game, map_sizes);
 	return (map_sizes);
@@ -242,6 +254,8 @@ void		log_map_line(t_game *game, char *line, int lines_to_read)
 	}
 }
 
+
+
 int			read_start_pos(t_game *game, t_pos *map_sizes,
 							t_pos **self_pos, t_pos **enemy_pos)
 {
@@ -249,11 +263,11 @@ int			read_start_pos(t_game *game, t_pos *map_sizes,
 	int		lines_to_read;
 	int		i;
 
-	lines_to_read = map_sizes->y + 1;
+	lines_to_read = map_sizes->y + 2;
 	line = ft_strnew(map_sizes->x + 5);
-	while (lines_to_read > 0)
+	while (--lines_to_read > 0)
 	{
-		if (read(STDIN_FILENO, line, map_sizes->x + 4) < 1)
+		if (get_next_line(STDIN_FILENO, &line) < 1)
 			return (0);
 		i = X_MAP_OFFSET;
 		while (line[i])
@@ -267,9 +281,8 @@ int			read_start_pos(t_game *game, t_pos *map_sizes,
 								map_sizes->y - lines_to_read);
 			i++;
 		}
-		lines_to_read--;
-		read_till_newline();
 		log_map_line(game, line, lines_to_read);
+		ft_strclr(line);
 	}
 	return ((!*self_pos || !*enemy_pos) ? 0 : 1);
 }
@@ -390,7 +403,7 @@ void		update_heat_map(t_game *game)
 	}
 }
 
-void		log_heat_map(t_game *game)
+void		log_heat_map(t_game *game, char *message)
 {
 	int		x;
 	int		y;
@@ -401,7 +414,7 @@ void		log_heat_map(t_game *game)
 	if (!game->log)
 		return ;
 	y = 0;
-	fwrite("\nHeat map:\n", sizeof(char), 11, game->log);
+	fwrite(message, sizeof(char), ft_strlen(message), game->log);
 	while (y < game->map->sizes->y)
 	{
 		x = 0;
@@ -434,7 +447,7 @@ int			create_map(t_game *game)
 	if (!game->map)
 		return (0);
 	update_heat_map(game);
-	log_heat_map(game);
+	log_heat_map(game, "\nHeat map created:\n");
 	return (1);
 }
 
@@ -493,7 +506,7 @@ t_piece		*read_piece(t_game *game)
 	line = ft_strnew(0);
 	if ((read(STDIN_FILENO, line, PIECE_COORD_PREFIX_LEN) < 1) ||
 		(!ft_strnequ(line, PIECE_COORD_PREFIX, PIECE_COORD_PREFIX_LEN) ||
-		!(sizes = read_coords())) ||
+		!(sizes = read_coords(game))) ||
 		!(piece = init_peace(sizes)))
 		return (NULL);
 	lines_to_read = sizes->y;
@@ -522,6 +535,7 @@ void		print_pos(t_pos *pos)
 	write(STDOUT_FILENO, y, ft_strlen(y));
 	write(STDOUT_FILENO, " ", 1);
 	write(STDOUT_FILENO, x, ft_strlen(x));
+	write(STDOUT_FILENO, "\n", 1);
 }
 
 int			is_valid_piece_pos(t_game *game, int x, int y)
@@ -679,10 +693,66 @@ void		log_choosed_pos(t_game *game)
 	}
 }
 
+void		add_self_pos_to_heatmap(t_game *game)
+{
+	int		x;
+	int		y;
+	int		pos_x;
+	int		pos_y;
+
+	pos_x = game->choosed_pos->x;
+	pos_y = game->choosed_pos->y;
+	y = 0;
+	while (y < game->self_piece->sizes->y)
+	{
+		x = 0;
+		while (x < game->self_piece->sizes->x)
+		{
+			if (game->self_piece->token[y][x] == 1)
+				game->map->heat_map[pos_y + y][pos_x + x] = 0;
+			x++;
+		}
+		y++;
+	}
+	log_heat_map(game, "\nAdded self piece to Heat map:\n");
+}
+
+int			update_enemy_pos(t_game *game)
+{
+	char	*line;
+	int		x;
+	int		y;
+	int		bytes;
+
+	line = ft_strnew(game->map->sizes->x + X_MAP_OFFSET + 1);
+	y = 0;
+	read_till_newline();
+	while (y < game->map->sizes->y + 1)
+	{
+		if ((bytes = read(STDIN_FILENO, line, game->map->sizes->x + X_MAP_OFFSET + 1))
+			< 1)
+			return (0);
+		line[game->map->sizes->x + 4] = '\0';
+		x = 4;
+		while (x < game->map->sizes->x)
+		{
+			if (line[x] == game->enemy->latest_sym)
+				game->map->heat_map[y][x - X_MAP_OFFSET] = -1;
+			x++;
+		}
+		y++;
+	}
+	log_heat_map(game, "\nAdded enemy piece:\n");
+	ft_strdel(&line);
+	return (1);
+}
+
 int			filler(int log_flag)
 {
 	t_game	*game;
+	char	*line;
 
+	line = ft_strnew(2);
 	game = init_game(log_flag);
 	if (!game || !read_players(game) || !create_map(game))
 		return (0);
@@ -694,10 +764,11 @@ int			filler(int log_flag)
 			return (finish_game(&game));
 		log_choosed_pos(game);
 		print_pos(game->choosed_pos);
-		// add_self_pos_to_heatmap(game);
-		// if (!(upadate_enemy_pos(game)))
-		// 	return (finish_game(&game));
-		// update_heat_map(game);
+		add_self_pos_to_heatmap(game);
+		// if (read(STDIN_FILENO, line, 1) > 0)
+			if (!(update_enemy_pos(game)))
+				return (finish_game(&game));
+		update_heat_map(game);
 	}
 	return (1);
 }
@@ -711,25 +782,54 @@ int			main(int ac, char **av)
 
 	// FILE	*fp;
 	// int		i = 0;
+	// char	c = '\0';
 	// char	*line = ft_strnew(1000);
 	// fp = fopen("vm_input", "w");
 	// while (i < 20)
 	// {
 	// 	get_next_line(STDIN_FILENO, &line);
-	// 	fprintf(fp, "line: %s\n", line);
+	// 	fprintf(fp, "%s\n", line);
 	// 	i++;
 	// }
 	// ft_putnbr(8);
 	// ft_putchar(' ');
 	// ft_putnbr(2);
 	// ft_putchar('\n');
+	// i = 0;
+	// while (i < 19)
+	// {
+	// 	if (read(STDIN_FILENO, &c, 1) > 0)
+	// 		get_next_line(STDIN_FILENO, &line);
+	// 	fprintf(fp, "%s\n", line);
+	// 	i++;
+	// }
+	// ft_putnbr(8);
+	// ft_putchar(' ');
+	// ft_putnbr(3);
+	// ft_putchar('\n');
+	
+	// i = 0;
+	// while (i < 19)
+	// {
+	// 	if (read(STDIN_FILENO, &c, 1) > 0)
+	// 		get_next_line(STDIN_FILENO, &line);
+	// 	fprintf(fp, "%s\n", line);
+	// 	i++;
+	// }
+	// ft_putnbr(8);
+	// ft_putchar(' ');
+	// ft_putnbr(4);
+	// ft_putchar('\n');
 	// fclose(fp);
+
 	i = 1;
 	log_flag = i + 1;
+
 	// log_flag = 0;
 	// while (ac > i)
 	// 	if (ft_strequ(av[i++], "-d"))
 	// 		log_flag = 1;
+
 	if (!filler(log_flag))
 	{
 		perror("An error occured in filler program");
