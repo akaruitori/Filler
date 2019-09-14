@@ -6,7 +6,7 @@
 /*   By: dtimeon <dtimeon@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2019/08/29 16:47:54 by dtimeon           #+#    #+#             */
-/*   Updated: 2019/09/11 17:26:17 by dtimeon          ###   ########.fr       */
+/*   Updated: 2019/09/14 18:20:31 by dtimeon          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -61,6 +61,7 @@ typedef struct		s_map
 typedef struct		s_piece
 {
 	t_pos			*sizes;
+	t_pos			*act_sizes;
 	int				**token;
 }					t_piece;
 
