@@ -6,10 +6,9 @@
 /*   By: dtimeon <dtimeon@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2019/09/15 16:46:27 by dtimeon           #+#    #+#             */
-/*   Updated: 2019/09/15 17:16:32 by dtimeon          ###   ########.fr       */
+/*   Updated: 2019/09/15 17:57:59 by dtimeon          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
-
 
 #include "filler.h"
 
@@ -63,10 +62,10 @@ void		copy_line_to_token(char *line, int **token, int row)
 	}
 }
 
-int				save_act_piece_sizes(t_piece *piece)
+int			save_act_piece_sizes(t_piece *piece)
 {
-	int			x;
-	int			y;
+	int		x;
+	int		y;
 
 	piece->act_sizes->x = 0;
 	piece->act_sizes->y = 0;

@@ -6,10 +6,9 @@
 /*   By: dtimeon <dtimeon@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2019/09/15 16:45:59 by dtimeon           #+#    #+#             */
-/*   Updated: 2019/09/15 16:57:20 by dtimeon          ###   ########.fr       */
+/*   Updated: 2019/09/15 17:59:38 by dtimeon          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
-
 
 #include "filler.h"
 
@@ -33,4 +32,15 @@ char		*find_player_line(t_game *game)
 		ft_strdel(&line);
 	}
 	return (NULL);
+}
+
+int			read_players(t_game *game)
+{
+	char	*line;
+
+	if (!(line = find_player_line(game)) ||
+		!(save_players(game, line)))
+		return (0);
+	ft_strdel(&line);
+	return (1);
 }

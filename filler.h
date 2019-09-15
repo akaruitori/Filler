@@ -6,12 +6,12 @@
 /*   By: dtimeon <dtimeon@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2019/08/29 16:47:54 by dtimeon           #+#    #+#             */
-/*   Updated: 2019/09/15 17:16:26 by dtimeon          ###   ########.fr       */
+/*   Updated: 2019/09/15 17:56:41 by dtimeon          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
-#ifndef FILLIT_H
-# define FILLIT_H
+#ifndef FILLER_H
+# define FILLER_H
 # include "libft.h"
 # include <stdlib.h>
 # include <sys/types.h>
@@ -46,7 +46,6 @@ typedef struct		s_pos
 
 typedef struct		s_player
 {
-	// char			*name;
 	char			sym;
 	char			latest_sym;
 	t_pos			*start_pos;
@@ -134,7 +133,6 @@ int					update_enemy_pos(t_game *game);
 */
 int					is_valid_piece_line(char *line, int len);
 int					is_valid_piece_pos(t_game *game, int x, int y);
-
 
 /*
 ** logging_parcing

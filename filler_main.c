@@ -6,7 +6,7 @@
 /*   By: dtimeon <dtimeon@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2019/08/29 16:47:33 by dtimeon           #+#    #+#             */
-/*   Updated: 2019/09/15 17:22:35 by dtimeon          ###   ########.fr       */
+/*   Updated: 2019/09/15 17:52:29 by dtimeon          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -34,7 +34,6 @@ int			finish_game(t_game **game)
 	*game = NULL;
 	return (1);
 }
-
 
 int			filler(void)
 {

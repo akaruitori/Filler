@@ -6,28 +6,17 @@
 /*   By: dtimeon <dtimeon@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2019/09/15 16:45:51 by dtimeon           #+#    #+#             */
-/*   Updated: 2019/09/15 17:05:36 by dtimeon          ###   ########.fr       */
+/*   Updated: 2019/09/15 17:59:42 by dtimeon          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "filler.h"
 
-int			read_players(t_game *game)
+t_pos		*read_coords(char *line)
 {
-	char	*line;
-
-	if (!(line = find_player_line(game)) ||
-		!(save_players(game, line)))
-		return (0);
-	ft_strdel(&line);
-	return (1);
-}
-
-t_pos			*read_coords(char *line)
-{
-	int			x;
-	int			y;
-	t_pos		*coords;
+	int		x;
+	int		y;
+	t_pos	*coords;
 
 	if (!(y = (int)ft_strtol(line, &line, 10)) ||
 		!(x = (int)ft_strtol(line, NULL, 10)) ||
@@ -41,7 +30,7 @@ t_pos			*read_coords(char *line)
 	return (coords);
 }
 
-t_pos			*read_map_sizes(t_game *game)
+t_pos		*read_map_sizes(t_game *game)
 {
 	char	*line;
 	t_pos	*map_sizes;

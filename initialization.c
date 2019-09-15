@@ -6,10 +6,9 @@
 /*   By: dtimeon <dtimeon@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2019/09/15 16:45:24 by dtimeon           #+#    #+#             */
-/*   Updated: 2019/09/15 17:47:13 by dtimeon          ###   ########.fr       */
+/*   Updated: 2019/09/15 17:57:09 by dtimeon          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
-
 
 #include "filler.h"
 
@@ -26,9 +25,9 @@ t_player		*init_player(int player_no)
 	return (new);
 }
 
-t_game		*init_game(void)
+t_game			*init_game(void)
 {
-	t_game	*new;
+	t_game		*new;
 
 	if (!(new = (t_game *)malloc(sizeof(t_game))))
 		return (NULL);
@@ -43,11 +42,11 @@ t_game		*init_game(void)
 	return (new);
 }
 
-t_map		*init_map(t_pos *map_sizes, t_pos *self_start_pos,
+t_map			*init_map(t_pos *map_sizes, t_pos *self_start_pos,
 						t_pos *enemy_start_pos)
 {
-	t_map	*new;
-	int		**heat_map;
+	t_map		*new;
+	int			**heat_map;
 
 	new = (t_map *)malloc(sizeof(t_map));
 	if (!new)
@@ -60,11 +59,11 @@ t_map		*init_map(t_pos *map_sizes, t_pos *self_start_pos,
 	return (new);
 }
 
-t_piece		*init_peace(t_pos *sizes)
+t_piece			*init_peace(t_pos *sizes)
 {
-	int		token_size;
-	t_piece	*piece;
-	int		y;
+	int			token_size;
+	t_piece		*piece;
+	int			y;
 
 	token_size = sizeof(int *) * sizes->y + sizeof(int) * sizes->y * sizes->x;
 	if (!(piece = (t_piece *)malloc(sizeof(t_piece))))
