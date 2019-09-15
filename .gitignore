@@ -1,0 +1,8 @@
+.DS_store
+*.o
+dtimeon.filler
+filler.code-workspace
+filler.trace
+./objects
+./libft/objects
+.vscode

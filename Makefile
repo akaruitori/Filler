@@ -12,7 +12,11 @@ OBJECT_FILE = $(SRCS:.c=.o)
 
 OBJECTS = $(addprefix $(OBJECTS_DIR), $(OBJECT_FILE))
 
-SRCS = filler_main.c
+SRCS =	filler_main.c parcing_player.c parcing_map_and_piece.c \
+		initialization.c saving_game_data.c heat_map_creating.c \
+		heat_map_updating.c validation.c logging_parcing.c \
+		logging_choosing_pos.c max_and_min.c choosing_piece_position.c \
+		freeing.c
 
 CC = gcc
 CFLAGS = -Wall -Wextra -Werror
@@ -39,3 +43,5 @@ fclean: clean
 	@make -C $(LIBF) fclean
 
 re: fclean all
+
+.PHONY: all, clean, fclean, re
