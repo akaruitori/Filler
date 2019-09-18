@@ -33,7 +33,7 @@ class Plateau
 		@map_row = @map_content.count("\n")
 		rescue
 			puts "error:"
-			puts "wrong map file rows #{@map_content.count("\n")}"
+			puts "wrong map rows num #{@map_row}"
 			exit (-2)
 		end
 		@map_col = -1
@@ -45,7 +45,7 @@ class Plateau
 					throw "Maperror"
 				rescue
 					puts "error:"
-					puts "wrong map file columns"
+					puts "wrong map columns num #{string.length}"
 					exit (-5)
 				end
 			end
@@ -125,6 +125,52 @@ class Plateau
 			gene_piece()
 		end
 	end
+
+	def print_coloured_char(fd, line, i)
+		if line[i] == "O"
+			fd.write(line[i].red)
+		elsif line[i] == "X"
+			fd.write(line[i].green)
+		else
+			fd.write(line[i])
+		end
+	end
+
+	def print_coloured_line(fd, line)
+		line.length.times do |i|
+			print_coloured_char(fd, line, i)
+		end		
+	end
+
+	def show_coloured_content(fd, piece_char = nil, y = 0, x = 0)
+		fd.write("Plateau #{@map_row} #{@map_col}:\n".blue)
+
+		columns_num = "    "
+		(0...@map_col).each { |n| columns_num << (n % 10).to_s[-1] }
+		columns_num << "\n"
+		fd.write(columns_num.grey)
+
+		@map_table.each_with_index do |line, row|
+			fd.write(("%03d" % row).grey)
+			fd.write(" ")
+			if (piece_char == nil || row < y || row >= (y + @piece_row))
+				print_coloured_line(fd, line)
+				fd.write("\n")
+			else
+				line.length.times do |i|
+					if (i >= x &&
+						i < (x + @piece_col) &&
+						@piece_content[(row - y) * @piece_col + (i - x)] == '*')
+						fd.write(piece_char == "o" ? piece_char.red : piece_char.green)
+					else
+						print_coloured_char(fd, line, i)
+					end
+				end
+				fd.write("\n")
+			end
+		end
+	end
+
 
 	def show_mapcontent(fd, piece_char = nil, y = 0, x = 0)
 		fd.write "Plateau #{@map_row} #{@map_col}:\n"
@@ -365,7 +411,7 @@ class Trace
 end
 
 class	Vm_filler
-	attr_accessor :map, :map_path, :rand_map, :player, :challenger, :interactif, :sid, :verbose, :time, :modif_time
+	attr_accessor :map, :map_path, :rand_map, :player, :challenger, :interactif, :sid, :verbose, :time, :modif_time, :colour
 
 	def	initialize(argv = nil)
 		self.time = 10
@@ -378,6 +424,7 @@ class	Vm_filler
 		self.verbose = 1
 		self.sid = -1
 		self.rand_map = nil
+		self.colour = nil
 		nmap = Proc.new do |av|
 			self.map_path = av
 		end
@@ -403,6 +450,9 @@ class	Vm_filler
 		rand_map = Proc.new do |av|
 			self.rand_map = 1
 		end
+		colour = Proc.new do |av|
+			self.colour = 1
+		end
 		func = {
 			"--file" => nmap,
 			"-f" => nmap,
@@ -419,7 +469,9 @@ class	Vm_filler
 			"-t" => time,
 			"--time" => time,
 			"-r" => rand_map,
-			"--random-map" => rand_map
+			"--random-map" => rand_map,
+			"-c" => colour,
+			"--colour" => colour
 		}
 		argv.each_with_index do |av, i|
 			if (func[av])
@@ -450,6 +502,30 @@ class	Vm_filler
 	end
 end
 
+class String
+	def blue
+		add_colour(34)
+	end
+
+	def green
+		add_colour(32)
+	end
+
+	def red
+		add_colour(31)
+	end
+
+	def grey
+		add_colour(30)
+	end
+
+	private
+
+	def add_colour(colour_code)
+		"\e[#{colour_code}m#{self}\e[0m"
+	end
+end
+
 def all_lose(players, trace)
 	i = 0
 	for player in players
@@ -461,7 +537,7 @@ end
 trap("SIGINT") { throw :ctrl_c }
 
 if __FILE__ == $0
-	 begin
+	#  begin
 		catch :ctrl_c do
 			begin
 			rescue Exception
@@ -522,7 +598,11 @@ if __FILE__ == $0
 
 
 		if (init.verbose > 0)
-			map.show_mapcontent($stdout)
+			if (init.colour)
+				map.show_coloured_content($stdout)
+			else
+				map.show_mapcontent($stdout)
+			end
 		end
 
 		while all_lose(players, trace)
@@ -568,7 +648,11 @@ if __FILE__ == $0
 					end
 
 					if (init.verbose > 0 && player.live > 0)
-						map.show_mapcontent($stdout, player.piece_char.downcase, nb[0].to_i, nb[1].to_i)
+						if (init.colour)
+							map.show_coloured_content($stdout, player.piece_char.downcase, nb[0].to_i, nb[1].to_i)
+						else
+							map.show_mapcontent($stdout, player.piece_char.downcase, nb[0].to_i, nb[1].to_i)
+						end
 					end
 				end
 			end
@@ -587,8 +671,8 @@ if __FILE__ == $0
 			end
 		end
 		exit 0
-	 rescue
-	 	puts "An error occured. aborting..."
-	 	exit -42
-	 end
+	#  rescue
+	#  	puts "An error occured. aborting..."
+	#  	exit -42
+	#  end
 end
