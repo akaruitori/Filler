@@ -6,7 +6,7 @@ P1WINS=0
 P2WINS=0
 I=0
 
-while ((I < $1))
+while (( $I < $1 ))
 do
 	ruby filler_vm -r -p1 ${PLAYER1} -p2 ${PLAYER2} -q > /dev/null 2>&1
 	winner=`grep won filler.trace`
